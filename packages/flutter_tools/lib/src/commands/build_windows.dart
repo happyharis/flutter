@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:meta/meta.dart';
 
+import '../base/analyze_size.dart';
 import '../base/common.dart';
 import '../build_info.dart';
 import '../cache.dart';
@@ -19,10 +20,8 @@ import 'build.dart';
 
 /// A command to build a windows desktop target through a build shell script.
 class BuildWindowsCommand extends BuildSubCommand {
-  BuildWindowsCommand() {
-    addTreeShakeIconsFlag();
-    addBuildModeFlags();
-    usesTargetOption();
+  BuildWindowsCommand({ bool verboseHelp = false }) {
+    addCommonDesktopBuildOptions(verboseHelp: verboseHelp);
   }
 
   @override
@@ -37,14 +36,13 @@ class BuildWindowsCommand extends BuildSubCommand {
   };
 
   @override
-  String get description => 'build the desktop Windows target.';
+  String get description => 'Build a Windows desktop application.';
 
   @visibleForTesting
   VisualStudio visualStudioOverride;
 
   @override
   Future<FlutterCommandResult> runCommand() async {
-    Cache.releaseLockEarly();
     final FlutterProject flutterProject = FlutterProject.current();
     final BuildInfo buildInfo = getBuildInfo();
     if (!featureFlags.isWindowsEnabled) {
@@ -58,6 +56,12 @@ class BuildWindowsCommand extends BuildSubCommand {
       buildInfo,
       target: targetFile,
       visualStudioOverride: visualStudioOverride,
+      sizeAnalyzer: SizeAnalyzer(
+        fileSystem: globals.fs,
+        logger: globals.logger,
+        appFilenamePattern: 'app.so',
+        flutterUsage: globals.flutterUsage,
+      ),
     );
     return FlutterCommandResult.success();
   }

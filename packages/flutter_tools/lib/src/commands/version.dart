@@ -13,22 +13,27 @@ import '../cache.dart';
 import '../dart/pub.dart';
 import '../globals.dart' as globals;
 import '../runner/flutter_command.dart';
-import '../version.dart';
 
 class VersionCommand extends FlutterCommand {
   VersionCommand() : super() {
-    argParser.addFlag('force',
+    argParser.addFlag(
+      'force',
       abbr: 'f',
-      help: 'Force switch to older Flutter versions that do not include a version command',
+      help:
+          'Force switch to older Flutter versions that do not include a version command',
     );
     // Don't use usesPubOption here. That will cause the version command to
     // require a pubspec.yaml file, which it doesn't need.
-    argParser.addFlag('pub',
+    argParser.addFlag(
+      'pub',
       defaultsTo: true,
       hide: true,
       help: 'Whether to run "flutter pub get" after switching versions.',
     );
   }
+
+  @override
+  bool get deprecated => true;
 
   @override
   final String name = 'version';
@@ -50,11 +55,9 @@ class VersionCommand extends FlutterCommand {
         workingDirectory: Cache.flutterRoot,
       );
     } on ProcessException catch (error) {
-      throwToolExit(
-        'Unable to get the tags. '
-        'This is likely due to an internal git error.'
-        '\nError: $error.'
-      );
+      throwToolExit('Unable to get the tags. '
+          'This is likely due to an internal git error.'
+          '\nError: $error.');
     }
     return runResult.toString().split('\n');
   }
@@ -78,17 +81,16 @@ class VersionCommand extends FlutterCommand {
     if (globals.stdio.stdinHasTerminal) {
       globals.terminal.usesTerminalUi = true;
       final String result = await globals.terminal.promptForCharInput(
-        <String>['y', 'n'],
-        logger: globals.logger,
-        prompt: 'Are you sure you want to proceed?'
-      );
+          <String>['y', 'n'],
+          logger: globals.logger, prompt: 'Are you sure you want to proceed?');
       if (result == 'n') {
         return FlutterCommandResult.success();
       }
     }
 
-    final String version = argResults.rest[0].replaceFirst('v', '');
-    final List<String> matchingTags = tags.where((String tag) => tag.contains(version)).toList();
+    final String version = argResults.rest[0].replaceFirst(RegExp('^v'), '');
+    final List<String> matchingTags =
+        tags.where((String tag) => tag.contains(version)).toList();
     String matchingTag;
     // TODO(fujino): make this a tool exit and fix tests
     if (matchingTags.isEmpty) {
@@ -108,10 +110,9 @@ class VersionCommand extends FlutterCommand {
     if (targetVersion < minSupportedVersion) {
       if (!boolArg('force')) {
         globals.printError(
-          'Version command is not supported in $targetVersion and it is supported since version $minSupportedVersion '
-          'which means if you switch to version $minSupportedVersion then you can not use version command. '
-          'If you really want to switch to version $targetVersion, please use `--force` flag: `flutter version --force $targetVersion`.'
-        );
+            'Version command is not supported in $targetVersion and it is supported since version $minSupportedVersion '
+            'which means if you switch to version $minSupportedVersion then you can not use version command. '
+            'If you really want to switch to version $targetVersion, please use `--force` flag: `flutter version --force $targetVersion`.');
         return const FlutterCommandResult(ExitStatus.success);
       }
       withForce = true;
@@ -124,18 +125,17 @@ class VersionCommand extends FlutterCommand {
         workingDirectory: Cache.flutterRoot,
       );
     } on Exception catch (e) {
-      throwToolExit('Unable to checkout version branch for version $version: $e');
+      throwToolExit(
+          'Unable to checkout version branch for version $version: $e');
     }
 
-    final FlutterVersion flutterVersion = FlutterVersion();
-
-    globals.printStatus('Switching Flutter to version ${flutterVersion.frameworkVersion}${withForce ? ' with force' : ''}');
+    globals.printStatus(
+        'Switching Flutter to version $matchingTag${withForce ? ' with force' : ''}');
 
     // Check for and download any engine and pkg/ updates.
     // We run the 'flutter' shell script re-entrantly here
     // so that it will download the updated Dart and so forth
     // if necessary.
-    globals.printStatus('');
     globals.printStatus('Downloading engine...');
     int code = await processUtils.stream(<String>[
       globals.fs.path.join('bin', 'flutter'),
@@ -147,9 +147,6 @@ class VersionCommand extends FlutterCommand {
       throwToolExit(null, exitCode: code);
     }
 
-    globals.printStatus('');
-    globals.printStatus(flutterVersion.toString());
-
     final String projectRoot = findProjectRoot();
     if (projectRoot != null && boolArg('pub')) {
       globals.printStatus('');
@@ -158,6 +155,7 @@ class VersionCommand extends FlutterCommand {
         directory: projectRoot,
         upgrade: true,
         checkLastModified: false,
+        generateSyntheticPackage: false,
       );
     }
 

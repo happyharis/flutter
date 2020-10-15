@@ -4,8 +4,11 @@
 
 import 'dart:async';
 
+import 'package:meta/meta.dart';
+
 import '../base/common.dart';
 import '../build_info.dart';
+import '../build_system/targets/web.dart';
 import '../features.dart';
 import '../project.dart';
 import '../runner/flutter_command.dart'
@@ -14,12 +17,16 @@ import '../web/compile.dart';
 import 'build.dart';
 
 class BuildWebCommand extends BuildSubCommand {
-  BuildWebCommand() {
-    addTreeShakeIconsFlag();
+  BuildWebCommand({
+    @required bool verboseHelp,
+  }) {
+    addTreeShakeIconsFlag(enabledByDefault: false);
     usesTargetOption();
     usesPubOption();
     addBuildModeFlags(excludeDebug: true);
     usesDartDefineOption();
+    addEnableExperimentation(hide: !verboseHelp);
+    addNullSafetyModeOptions(hide: !verboseHelp);
     argParser.addFlag('web-initialize-platform',
         defaultsTo: true,
         negatable: true,
@@ -31,6 +38,22 @@ class BuildWebCommand extends BuildSubCommand {
       negatable: false,
       help: 'Disable dynamic generation of code in the generated output. '
         'This is necessary to satisfy CSP restrictions (see http://www.w3.org/TR/CSP/).'
+    );
+    argParser.addOption('pwa-strategy',
+      defaultsTo: kOfflineFirst,
+      help:
+        'The caching strategy to be used by the PWA service worker.\n'
+        'offline-first will attempt to cache the app shell eagerly and '
+        'then lazily cache all subsequent assets as they are loaded. When '
+        'making a network request for an asset, the offline cache will be '
+        'preferred.\n'
+        'none will generate a service worker with no body. This is useful for '
+        'local testing or in cases where the service worker caching functionality '
+        'is not desirable',
+      allowed: <String>[
+        kOfflineFirst,
+        kNoneWorker,
+      ]
     );
   }
 
@@ -47,7 +70,7 @@ class BuildWebCommand extends BuildSubCommand {
   bool get hidden => !featureFlags.isWebEnabled;
 
   @override
-  final String description = 'build a web application bundle.';
+  final String description = 'Build a web application bundle.';
 
   @override
   Future<FlutterCommandResult> runCommand() async {
@@ -66,6 +89,7 @@ class BuildWebCommand extends BuildSubCommand {
       buildInfo,
       boolArg('web-initialize-platform'),
       boolArg('csp'),
+      stringArg('pwa-strategy'),
     );
     return FlutterCommandResult.success();
   }

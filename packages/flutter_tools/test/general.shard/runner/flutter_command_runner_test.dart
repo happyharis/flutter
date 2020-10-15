@@ -6,6 +6,7 @@ import 'package:file/memory.dart';
 import 'package:flutter_tools/src/base/context.dart';
 import 'package:flutter_tools/src/base/file_system.dart';
 import 'package:flutter_tools/src/base/io.dart';
+import 'package:flutter_tools/src/base/platform.dart';
 import 'package:flutter_tools/src/base/terminal.dart';
 import 'package:flutter_tools/src/cache.dart';
 import 'package:flutter_tools/src/globals.dart' as globals;
@@ -13,7 +14,6 @@ import 'package:flutter_tools/src/runner/flutter_command.dart';
 import 'package:flutter_tools/src/runner/flutter_command_runner.dart';
 import 'package:flutter_tools/src/version.dart';
 import 'package:mockito/mockito.dart';
-import 'package:platform/platform.dart';
 import 'package:process/process.dart';
 
 import '../../src/common.dart';
@@ -51,13 +51,16 @@ void main() {
         version: '1 2 3 4 5',
       );
 
-      runner = createTestCommandRunner(DummyFlutterCommand()) as FlutterCommandRunner;
+      runner = createTestCommandRunner(DummyFlutterCommand())
+          as FlutterCommandRunner;
       processManager = MockProcessManager();
     });
 
     group('run', () {
-      testUsingContext('checks that Flutter installation is up-to-date', () async {
-        final MockFlutterVersion version = globals.flutterVersion as MockFlutterVersion;
+      testUsingContext('checks that Flutter installation is up-to-date',
+          () async {
+        final MockFlutterVersion version =
+            globals.flutterVersion as MockFlutterVersion;
         bool versionChecked = false;
         when(version.checkFlutterVersionFreshness()).thenAnswer((_) async {
           versionChecked = true;
@@ -72,8 +75,11 @@ void main() {
         Platform: () => platform,
       }, initializeFlutterRoot: false);
 
-      testUsingContext('does not check that Flutter installation is up-to-date with --machine flag', () async {
-        final MockFlutterVersion version = globals.flutterVersion as MockFlutterVersion;
+      testUsingContext(
+          'does not check that Flutter installation is up-to-date with --machine flag',
+          () async {
+        final MockFlutterVersion version =
+            globals.flutterVersion as MockFlutterVersion;
         bool versionChecked = false;
         when(version.checkFlutterVersionFreshness()).thenAnswer((_) async {
           versionChecked = true;
@@ -89,7 +95,8 @@ void main() {
       }, initializeFlutterRoot: false);
 
       testUsingContext('Fetches tags when --version is used', () async {
-        final MockFlutterVersion version = globals.flutterVersion as MockFlutterVersion;
+        final MockFlutterVersion version =
+            globals.flutterVersion as MockFlutterVersion;
 
         await runner.run(<String>['--version']);
 
@@ -100,27 +107,41 @@ void main() {
         Platform: () => platform,
       }, initializeFlutterRoot: false);
 
-      testUsingContext('throw tool exit if the version file cannot be written', () async {
-        final MockFlutterVersion version = globals.flutterVersion as MockFlutterVersion;
-        when(version.ensureVersionFile()).thenThrow(const FileSystemException());
+      testUsingContext('throw tool exit if the version file cannot be written',
+          () async {
+        final MockFlutterVersion version =
+            globals.flutterVersion as MockFlutterVersion;
+        when(version.ensureVersionFile())
+            .thenThrow(const FileSystemException());
 
-        expect(() async => await runner.run(<String>['dummy']), throwsToolExit());
-
+        expect(
+            () async => await runner.run(<String>['dummy']), throwsToolExit());
       }, overrides: <Type, Generator>{
         FileSystem: () => fs,
         ProcessManager: () => FakeProcessManager.any(),
         Platform: () => platform,
       }, initializeFlutterRoot: false);
 
-      testUsingContext('works if --local-engine is specified and --local-engine-src-path is determined by sky_engine', () async {
-        fs.directory('$_kArbitraryEngineRoot/src/out/ios_debug/gen/dart-pkg/sky_engine/lib/').createSync(recursive: true);
-        fs.directory('$_kArbitraryEngineRoot/src/out/host_debug').createSync(recursive: true);
-        fs.file(_kDotPackages).writeAsStringSync('sky_engine:file://$_kArbitraryEngineRoot/src/out/ios_debug/gen/dart-pkg/sky_engine/lib/');
+      testUsingContext(
+          'works if --local-engine is specified and --local-engine-src-path is determined by sky_engine',
+          () async {
+        fs
+            .directory(
+                '$_kArbitraryEngineRoot/src/out/ios_debug/gen/dart-pkg/sky_engine/lib/')
+            .createSync(recursive: true);
+        fs
+            .directory('$_kArbitraryEngineRoot/src/out/host_debug')
+            .createSync(recursive: true);
+        fs.file(_kDotPackages).writeAsStringSync(
+            'sky_engine:file://$_kArbitraryEngineRoot/src/out/ios_debug/gen/dart-pkg/sky_engine/lib/');
+
         await runner.run(<String>['dummy', '--local-engine=ios_debug']);
 
         // Verify that this also works if the sky_engine path is a symlink to the engine root.
         fs.link('/symlink').createSync(_kArbitraryEngineRoot);
-        fs.file(_kDotPackages).writeAsStringSync('sky_engine:file:///symlink/src/out/ios_debug/gen/dart-pkg/sky_engine/lib/');
+        fs.file(_kDotPackages).writeAsStringSync(
+            'sky_engine:file:///symlink/src/out/ios_debug/gen/dart-pkg/sky_engine/lib/');
+
         await runner.run(<String>['dummy', '--local-engine=ios_debug']);
       }, overrides: <Type, Generator>{
         FileSystem: () => fs,
@@ -128,19 +149,39 @@ void main() {
         Platform: () => platform,
       }, initializeFlutterRoot: false);
 
-      testUsingContext('works if --local-engine is specified and --local-engine-src-path is specified', () async {
-        fs.directory('$_kArbitraryEngineRoot/src/out/ios_debug').createSync(recursive: true);
-        fs.directory('$_kArbitraryEngineRoot/src/out/host_debug').createSync(recursive: true);
-        await runner.run(<String>['dummy', '--local-engine-src-path=$_kArbitraryEngineRoot/src', '--local-engine=ios_debug']);
+      testUsingContext(
+          'works if --local-engine is specified and --local-engine-src-path is specified',
+          () async {
+        // Intentionally do not create a package_config to verify that it is not required.
+        fs
+            .directory('$_kArbitraryEngineRoot/src/out/ios_debug')
+            .createSync(recursive: true);
+        fs
+            .directory('$_kArbitraryEngineRoot/src/out/host_debug')
+            .createSync(recursive: true);
+
+        await runner.run(<String>[
+          'dummy',
+          '--local-engine-src-path=$_kArbitraryEngineRoot/src',
+          '--local-engine=ios_debug'
+        ]);
       }, overrides: <Type, Generator>{
         FileSystem: () => fs,
         ProcessManager: () => FakeProcessManager.any(),
         Platform: () => platform,
       }, initializeFlutterRoot: false);
 
-      testUsingContext('works if --local-engine is specified and --local-engine-src-path is determined by flutter root', () async {
-        fs.directory('$_kEngineRoot/src/out/ios_debug').createSync(recursive: true);
-        fs.directory('$_kEngineRoot/src/out/host_debug').createSync(recursive: true);
+      testUsingContext(
+          'works if --local-engine is specified and --local-engine-src-path is determined by flutter root',
+          () async {
+        fs.file(_kDotPackages).writeAsStringSync('\n');
+        fs
+            .directory('$_kEngineRoot/src/out/ios_debug')
+            .createSync(recursive: true);
+        fs
+            .directory('$_kEngineRoot/src/out/host_debug')
+            .createSync(recursive: true);
+
         await runner.run(<String>['dummy', '--local-engine=ios_debug']);
       }, overrides: <Type, Generator>{
         FileSystem: () => fs,
@@ -156,7 +197,6 @@ void main() {
         ..writeAsStringSync('Not a valid package');
 
       await runner.run(<String>['dummy']);
-
     }, overrides: <Type, Generator>{
       FileSystem: () => fs,
       ProcessManager: () => FakeProcessManager.any(),
@@ -164,25 +204,48 @@ void main() {
     }, initializeFlutterRoot: false);
 
     group('version', () {
-      testUsingContext('checks that Flutter toJson output reports the flutter framework version', () async {
+      testUsingContext(
+          'checks that Flutter toJson output reports the flutter framework version',
+          () async {
         final ProcessResult result = ProcessResult(0, 0, 'random', '0');
 
-        when(processManager.runSync(FlutterVersion.gitLog('-n 1 --pretty=format:%H'.split(' ')),
-          workingDirectory: Cache.flutterRoot)).thenReturn(result);
-        when(processManager.runSync('git rev-parse --abbrev-ref --symbolic @{u}'.split(' '),
-          workingDirectory: Cache.flutterRoot)).thenReturn(result);
-        when(processManager.runSync('git rev-parse --abbrev-ref HEAD'.split(' '),
-          workingDirectory: Cache.flutterRoot)).thenReturn(result);
+        when(processManager.runSync(
+                FlutterVersion.gitLog('-n 1 --pretty=format:%H'.split(' ')),
+                workingDirectory: Cache.flutterRoot))
+            .thenReturn(result);
+        when(processManager.runSync(
+                'git rev-parse --abbrev-ref --symbolic @{u}'.split(' '),
+                workingDirectory: Cache.flutterRoot))
+            .thenReturn(result);
+        when(processManager.runSync(
+                'git rev-parse --abbrev-ref HEAD'.split(' '),
+                workingDirectory: Cache.flutterRoot))
+            .thenReturn(result);
         when(processManager.runSync('git ls-remote --get-url master'.split(' '),
-          workingDirectory: Cache.flutterRoot)).thenReturn(result);
-        when(processManager.runSync(FlutterVersion.gitLog('-n 1 --pretty=format:%ar'.split(' ')),
-          workingDirectory: Cache.flutterRoot)).thenReturn(result);
-        when(processManager.runSync('git fetch https://github.com/flutter/flutter.git --tags'.split(' '),
-          workingDirectory: Cache.flutterRoot)).thenReturn(result);
-        when(processManager.runSync('git describe --match *.*.* --first-parent --long --tags'.split(' '),
-          workingDirectory: Cache.flutterRoot)).thenReturn(result);
-        when(processManager.runSync(FlutterVersion.gitLog('-n 1 --pretty=format:%ad --date=iso'.split(' ')),
-          workingDirectory: Cache.flutterRoot)).thenReturn(result);
+                workingDirectory: Cache.flutterRoot))
+            .thenReturn(result);
+        when(processManager.runSync(
+                FlutterVersion.gitLog('-n 1 --pretty=format:%ar'.split(' ')),
+                workingDirectory: Cache.flutterRoot))
+            .thenReturn(result);
+        when(processManager.runSync(
+                'git fetch https://github.com/flutter/flutter.git --tags'
+                    .split(' '),
+                workingDirectory: Cache.flutterRoot))
+            .thenReturn(result);
+        when(processManager.runSync('git tag --points-at HEAD'.split(' '),
+                workingDirectory: Cache.flutterRoot))
+            .thenReturn(result);
+        when(processManager.runSync(
+                'git describe --match *.*.* --first-parent --long --tags'
+                    .split(' '),
+                workingDirectory: Cache.flutterRoot))
+            .thenReturn(result);
+        when(processManager.runSync(
+                FlutterVersion.gitLog(
+                    '-n 1 --pretty=format:%ad --date=iso'.split(' ')),
+                workingDirectory: Cache.flutterRoot))
+            .thenReturn(result);
 
         final FakeFlutterVersion version = FakeFlutterVersion();
 
@@ -201,16 +264,22 @@ void main() {
       setUp(() {
         oldFlutterRoot = Cache.flutterRoot;
         Cache.flutterRoot = _kFlutterRoot;
-        fs.directory(fs.path.join(_kFlutterRoot, 'examples'))
+        fs
+            .directory(fs.path.join(_kFlutterRoot, 'examples'))
             .createSync(recursive: true);
-        fs.directory(fs.path.join(_kFlutterRoot, 'packages'))
+        fs
+            .directory(fs.path.join(_kFlutterRoot, 'packages'))
             .createSync(recursive: true);
-        fs.directory(fs.path.join(_kFlutterRoot, 'dev', 'tools', 'aatool'))
+        fs
+            .directory(fs.path.join(_kFlutterRoot, 'dev', 'tools', 'aatool'))
             .createSync(recursive: true);
 
-        fs.file(fs.path.join(_kFlutterRoot, 'dev', 'tools', 'pubspec.yaml'))
+        fs
+            .file(fs.path.join(_kFlutterRoot, 'dev', 'tools', 'pubspec.yaml'))
             .createSync();
-        fs.file(fs.path.join(_kFlutterRoot, 'dev', 'tools', 'aatool', 'pubspec.yaml'))
+        fs
+            .file(fs.path
+                .join(_kFlutterRoot, 'dev', 'tools', 'aatool', 'pubspec.yaml'))
             .createSync();
       });
 
@@ -219,10 +288,12 @@ void main() {
       });
 
       testUsingContext('', () {
-        final List<String> packagePaths = runner.getRepoPackages()
-            .map((Directory d) => d.path).toList();
+        final List<String> packagePaths =
+            runner.getRepoPackages().map((Directory d) => d.path).toList();
         expect(packagePaths, <String>[
-          fs.directory(fs.path.join(_kFlutterRoot, 'dev', 'tools', 'aatool')).path,
+          fs
+              .directory(fs.path.join(_kFlutterRoot, 'dev', 'tools', 'aatool'))
+              .path,
           fs.directory(fs.path.join(_kFlutterRoot, 'dev', 'tools')).path,
         ]);
       }, overrides: <Type, Generator>{
@@ -233,7 +304,9 @@ void main() {
     });
 
     group('wrapping', () {
-      testUsingContext('checks that output wrapping is turned on when writing to a terminal', () async {
+      testUsingContext(
+          'checks that output wrapping is turned on when writing to a terminal',
+          () async {
         final FakeFlutterCommand fakeCommand = FakeFlutterCommand();
         runner.addCommand(fakeCommand);
         await runner.run(<String>['fake']);
@@ -244,7 +317,9 @@ void main() {
         Stdio: () => FakeStdio(hasFakeTerminal: true),
       }, initializeFlutterRoot: false);
 
-      testUsingContext('checks that output wrapping is turned off when not writing to a terminal', () async {
+      testUsingContext(
+          'checks that output wrapping is turned off when not writing to a terminal',
+          () async {
         final FakeFlutterCommand fakeCommand = FakeFlutterCommand();
         runner.addCommand(fakeCommand);
         await runner.run(<String>['fake']);
@@ -255,7 +330,9 @@ void main() {
         Stdio: () => FakeStdio(hasFakeTerminal: false),
       }, initializeFlutterRoot: false);
 
-      testUsingContext('checks that output wrapping is turned off when set on the command line and writing to a terminal', () async {
+      testUsingContext(
+          'checks that output wrapping is turned off when set on the command line and writing to a terminal',
+          () async {
         final FakeFlutterCommand fakeCommand = FakeFlutterCommand();
         runner.addCommand(fakeCommand);
         await runner.run(<String>['--no-wrap', 'fake']);
@@ -266,7 +343,9 @@ void main() {
         Stdio: () => FakeStdio(hasFakeTerminal: true),
       }, initializeFlutterRoot: false);
 
-      testUsingContext('checks that output wrapping is turned on when set on the command line, but not writing to a terminal', () async {
+      testUsingContext(
+          'checks that output wrapping is turned on when set on the command line, but not writing to a terminal',
+          () async {
         final FakeFlutterCommand fakeCommand = FakeFlutterCommand();
         runner.addCommand(fakeCommand);
         await runner.run(<String>['--wrap', 'fake']);
@@ -279,6 +358,7 @@ void main() {
     });
   });
 }
+
 class MockProcessManager extends Mock implements ProcessManager {}
 
 class FakeFlutterVersion extends FlutterVersion {
@@ -292,7 +372,8 @@ class FakeFlutterCommand extends FlutterCommand {
   @override
   Future<FlutterCommandResult> runCommand() {
     preferences = globals.outputPreferences;
-    return Future<FlutterCommandResult>.value(const FlutterCommandResult(ExitStatus.success));
+    return Future<FlutterCommandResult>.value(
+        const FlutterCommandResult(ExitStatus.success));
   }
 
   @override

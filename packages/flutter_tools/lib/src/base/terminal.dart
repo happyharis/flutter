@@ -5,12 +5,12 @@
 import 'dart:async';
 
 import 'package:meta/meta.dart';
-import 'package:platform/platform.dart';
 
 import '../convert.dart';
 import '../globals.dart' as globals;
 import 'io.dart' as io;
 import 'logger.dart';
+import 'platform.dart';
 
 enum TerminalColor {
   red,
@@ -81,7 +81,10 @@ class OutputPreferences {
 
 /// The command line terminal, if available.
 abstract class Terminal {
-  factory Terminal.test() = _TestTerminal;
+  /// Create a new test [Terminal].
+  ///
+  /// If not specified, [supportsColor] defaults to `false`.
+  factory Terminal.test({bool supportsColor}) = _TestTerminal;
 
   /// Whether the current terminal supports color escape codes.
   bool get supportsColor;
@@ -168,7 +171,7 @@ class AnsiTerminal implements Terminal {
   static String colorCode(TerminalColor color) => _colorMap[color];
 
   @override
-  bool get supportsColor => _platform.stdoutSupportsAnsi ?? false;
+  bool get supportsColor => _platform?.stdoutSupportsAnsi ?? false;
 
   // Assume unicode emojis are supported when not on Windows.
   // If we are on Windows, unicode emojis are supported in Windows Terminal,
@@ -273,7 +276,7 @@ class AnsiTerminal implements Terminal {
     List<String> charactersToDisplay = acceptedCharacters;
     if (defaultChoiceIndex != null) {
       assert(defaultChoiceIndex >= 0 && defaultChoiceIndex < acceptedCharacters.length);
-      charactersToDisplay = List<String>.from(charactersToDisplay);
+      charactersToDisplay = List<String>.of(charactersToDisplay);
       charactersToDisplay[defaultChoiceIndex] = bolden(charactersToDisplay[defaultChoiceIndex]);
       acceptedCharacters.add('\n');
     }
@@ -285,6 +288,7 @@ class AnsiTerminal implements Terminal {
         if (displayAcceptedCharacters) {
           logger.printStatus(' [${charactersToDisplay.join("|")}]', newline: false);
         }
+        // prompt ends with ': '
         logger.printStatus(': ', emphasis: true, newline: false);
       }
       choice = await keystrokes.first;
@@ -299,6 +303,8 @@ class AnsiTerminal implements Terminal {
 }
 
 class _TestTerminal implements Terminal {
+  _TestTerminal({this.supportsColor = false});
+
   @override
   bool usesTerminalUi;
 
@@ -328,7 +334,7 @@ class _TestTerminal implements Terminal {
   set singleCharMode(bool value) { }
 
   @override
-  bool get supportsColor => false;
+  final bool supportsColor;
 
   @override
   bool get supportsEmoji => false;

@@ -31,6 +31,8 @@ abstract class FlutterTestRunner {
     Directory workDir,
     List<String> names = const <String>[],
     List<String> plainNames = const <String>[],
+    String tags,
+    String excludeTags,
     bool enableObservatory = false,
     bool startPaused = false,
     bool disableServiceAuthCodes = false,
@@ -49,6 +51,8 @@ abstract class FlutterTestRunner {
     Directory coverageDirectory,
     bool web = false,
     String randomSeed,
+    @required List<String> extraFrontEndOptions,
+    bool nullAssertions = false,
   });
 }
 
@@ -62,6 +66,8 @@ class _FlutterTestRunnerImpl implements FlutterTestRunner {
     Directory workDir,
     List<String> names = const <String>[],
     List<String> plainNames = const <String>[],
+    String tags,
+    String excludeTags,
     bool enableObservatory = false,
     bool startPaused = false,
     bool disableServiceAuthCodes = false,
@@ -80,6 +86,8 @@ class _FlutterTestRunnerImpl implements FlutterTestRunner {
     Directory coverageDirectory,
     bool web = false,
     String randomSeed,
+    @required List<String> extraFrontEndOptions,
+    bool nullAssertions = false,
   }) async {
     // Configure package:test to use the Flutter engine for child processes.
     final String shellPath = globals.artifacts.getArtifactPath(Artifact.flutterTester);
@@ -104,6 +112,10 @@ class _FlutterTestRunnerImpl implements FlutterTestRunner {
         ...<String>['--plain-name', plainName],
       if (randomSeed != null)
         '--test-randomize-ordering-seed=$randomSeed',
+      if (tags != null)
+        ...<String>['--tags', tags],
+      if (excludeTags != null)
+        ...<String>['--exclude-tags', excludeTags],
     ];
     if (web) {
       final String tempBuildDir = globals.fs.systemTempDirectory
@@ -167,12 +179,14 @@ class _FlutterTestRunnerImpl implements FlutterTestRunner {
       projectRootDirectory: globals.fs.currentDirectory.uri,
       flutterProject: flutterProject,
       icudtlPath: icudtlPath,
+      extraFrontEndOptions: extraFrontEndOptions,
+      nullAssertions: nullAssertions,
     );
 
     // Make the global packages path absolute.
     // (Makes sure it still works after we change the current directory.)
-    PackageMap.globalPackagesPath =
-        globals.fs.path.normalize(globals.fs.path.absolute(PackageMap.globalPackagesPath));
+    globalPackagesPath =
+        globals.fs.path.normalize(globals.fs.path.absolute(globalPackagesPath));
 
     // Call package:test's main method in the appropriate directory.
     final Directory saved = globals.fs.currentDirectory;
